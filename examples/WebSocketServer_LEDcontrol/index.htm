@@ -1,0 +1,76 @@
+<html>
+<head><meta charset="UTF-8">
+<style>
+h2 {font-size:150%; color:#5734E6; margin:30px 10px;}
+canvas {width:20px; height:20px; border:1px solid #00FF00; margin: 5px 14px;}
+fieldset {width:500px;}
+textarea {resize:none; background-color:#EEEEEE}
+</style></head>
+<body>
+<h2>WebSocket example to monitor and control a LED</h2><br/>
+<fieldset><legend>LED control panel</legend><br/>
+<label>LED state</label><canvas id="ledCanvas"></canvas><br/><br/>
+<label>LED on time</label><input id="onTime" type="range" min="50" max="500" step="50" value="500" oninput="sendData(this, 1);"/><br/><br/>
+<label>LED off time</label><input id="offTime" type="range" min="50" max="500" step="50" value="500" oninput="sendData(this, 0);"/>
+</fieldset><br/>
+<fieldset><legend>WebSocket message log</legend>
+<textarea id='msg_log' rows='10' cols='60' placeholder="Messages come here" readonly></textarea>
+</fieldset>
+<script>
+//---------------------------------------------------------------------
+var connection = new WebSocket('ws://'+location.hostname+':81/', ['arduino']);
+connection.onopen = function () {
+	MsgLog("WS connected to "+location.hostname);
+};
+connection.onerror = function (error) {
+	MsgLog('WS Error ', error);
+};
+connection.onmessage = function (e) {
+	msg = e.data;
+	MsgLog("WS received: "+msg);
+	if ( msg.includes("LED=1") )
+		setLed(1);
+	else if ( msg.includes("LED=0") )
+		setLed(0);
+	if ( (ind=msg.indexOf("onTime="))>=0 )
+		document.getElementById("onTime").value = parseInt(msg.substr(ind+7));
+	if ( (ind=msg.indexOf("offTime="))>=0 )
+		document.getElementById("offTime").value = parseInt(msg.substr(ind+8));
+};
+connection.onclose = function () {
+	MsgLog("WS closed.");
+};
+//---------------------------------------------------------------------
+function make2chars(i) { return ( (i<10) ? ('0'+i.toString()) : (i.toString()) ); }
+//---------------------------------------------------------------------
+function GetDateString(d) {
+	dStr = /*d.getFullYear()+"-"+make2chars(d.getMonth()+1)+"-"+make2chars(d.getDate())+", "*/
+		+make2chars(d.getHours())+":"+make2chars(d.getMinutes())+":"+make2chars(d.getSeconds());
+	return dStr;
+}
+//---------------------------------------------------------------------
+function MsgLog(str)
+{
+	str = GetDateString(new Date()) + "> " + str;
+	console.log(str);
+	document.getElementById("msg_log").innerHTML += str+"\n";
+	document.getElementById("msg_log").scrollTop = document.getElementById("msg_log").scrollHeight;
+}
+//---------------------------------------------------------------------
+function sendData(dis, on_off)
+{
+	val = (on_off?"on":"off")+"Time="+dis.value.toString();
+	MsgLog(val);
+	connection.send(val);
+}
+//---------------------------------------------------------------------
+function setLed(on_off)
+{
+	c1 = document.getElementById("ledCanvas");
+	ctx1 = c1.getContext("2d");
+	ctx1.fillStyle = (on_off?'#00ff00':"white");
+	ctx1.fillRect(0, 0, c1.width, c1.height);
+}
+</script>
+</body>
+</html>
