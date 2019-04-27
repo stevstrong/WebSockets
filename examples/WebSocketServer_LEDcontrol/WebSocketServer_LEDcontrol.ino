@@ -8,7 +8,6 @@
 #include <WebSocketsServer.h>
 #include <Streaming.h>
 
-#include "favicon.h"
 
 char dbg[500];
 
@@ -33,7 +32,9 @@ const char header_NOK[]="HTTP/1.1 404 Not Found\r\n"
 const char index_htm[]={
 #include "index_htm.h"
 };
-extern const char favicon_ico[];
+
+#include "favicon.h"
+
 //-----------------------------------------------------------------------------
 int rxCount = 0;
 bool wsConnected = false;
@@ -64,45 +65,45 @@ void blink()
 //-----------------------------------------------------------------------------
 void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length)
 {
-    switch(type)
+	switch(type)
 	{
-        case WStype_DISCONNECTED:
+		case WStype_DISCONNECTED:
 		{
-            PRINTF("[WEBSOCKET][%u] Disconnected!\n", num);
+			PRINTF("[WEBSOCKET][%u] Disconnected!\n", num);
 			wsConnected = false;
-            break;
+			break;
 		}
-        case WStype_CONNECTED:
+		case WStype_CONNECTED:
 		{
 			wsConnected = true;
 			wsNum = num;
-            IPAddress ip = webSocket.getRemoteIP(num);
-            PRINTF("[WEBSOCKET][%u] Connected to client at %d.%d.%d.%d, url: %s\n", num, ip[0], ip[1], ip[2], ip[3], payload);
-            // send message to client
-            webSocket.sendTXT(num, "Alive! onTime=250; offTime=250;");
-            break;
-        }
-        case WStype_TEXT:
+			IPAddress ip = webSocket.getRemoteIP(num);
+			PRINTF("[WEBSOCKET][%u] Connected to client at %d.%d.%d.%d, url: %s\n", num, ip[0], ip[1], ip[2], ip[3], payload);
+			// send message to client
+			webSocket.sendTXT(num, "Alive! onTime=250; offTime=250;");
+			break;
+		}
+		case WStype_TEXT:
 		{
 			rxCount++;
-            PRINTF("[WEBSOCKET][%u] Rx %u bytes: %s\n", num, length, payload);
+			PRINTF("[WEBSOCKET][%u] Rx %u bytes: %s\n", num, length, payload);
 
-            if ( strncmp((const char*)payload, "onTime", 6)==0 )
+			if ( strncmp((const char*)payload, "onTime", 6)==0 )
 			{
-                if (payload[6]=='=')
+				if (payload[6]=='=')
 					onTime = atoi((const char*)&payload[7]);
 			}
 			else if ( strncmp((const char*)payload, "offTime", 7)==0 )
 			{
-                if (payload[7]=='=')
+				if (payload[7]=='=')
 					offTime = atoi((const char*)&payload[8]);
 			}
-            break;
+			break;
 		}
-        case WStype_ERROR:
-        default:
-            break;
-    }
+		case WStype_ERROR:
+		default:
+			break;
+	}
 }
 //-----------------------------------------------------------------------------
 const uint8_t ETHERNET_SPI_CS_PIN = PA4;
@@ -120,7 +121,7 @@ void setup()
     digitalWrite(LED_BUILTIN, 1);
 
     Serial.begin(115200);
-	while (!Serial); delay(100);
+	while (!Serial); delay(10);
 
 	Serial.println("*************************************************************");
 	Serial.println("***** Web socket server example *****");
@@ -228,25 +229,25 @@ void HTTP_PostProcess(void)
 	{
 		if ( txMode==SEND_INDEX_PAGE )
 		{
-			client.write(header_htm); // OK header
+			client.write(header_htm, sizeof(header_htm)-1); // OK header
 			uint32_t t = millis();
 			Serial << t << "> Tx: sending Index page in ";
-			client.write(index_htm);//, sizeof(index_htm));
+			client.write(index_htm, sizeof(index_htm)-1);//, sizeof(index_htm));
 			Serial << ( millis()-t ) << " ms.\n";
 		}
 		else
 		if ( txMode==SEND_FAVICON )
 		{
-			client.write(header_icon); // icon header
+			client.write(header_icon, sizeof(header_icon)-1); // icon header
 			uint32_t t = millis();
 			Serial << t << "> Tx: sending favicon in ";
-			client.write(favicon_ico);//, sizeof(favicon_ico));
+			client.write(favicon_ico, sizeof(favicon_ico)-1);//, sizeof(favicon_ico));
 			Serial << ( millis()-t ) << " ms.\n";
 		}
 		else
 		if ( txMode==SEND_NOT_FOUND )
 		{
-			client.write(header_NOK);
+			client.write(header_NOK, sizeof(header_NOK)-1);
 		}
 		txMode = SEND_NOTHING;
 	}
